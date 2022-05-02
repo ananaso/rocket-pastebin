@@ -41,12 +41,9 @@ async fn upload(paste: Data<'_>) -> Result<String, Debug<std::io::Error>> {
 }
 
 #[get("/<id>")]
-async fn retrieve(id: &str) -> Result<String, Debug<std::io::Error>> {
+async fn retrieve(id: &str) -> Option<File> {
     let filepath = format!("upload/{id}", id = id);
-    let mut file = File::open(&filepath)?;
-    let mut string = String::new();
-    file.read_to_string(&mut string)?;
-    Ok(string)
+    File::open(&filepath).ok()
 }
 
 #[launch]
