@@ -2,6 +2,14 @@
 extern crate rocket;
 mod paste_id;
 
+use paste_id::PasteId;
+use rocket::response::Debug;
+use rocket::data::ToByteUnit;
+use rocket::{Data};
+
+const ID_SIZE: usize = 3;
+const HOST: &str = "http://localhost:8000";
+
 #[get("/")]
 fn index() -> &'static str {
     "
@@ -18,7 +26,18 @@ fn index() -> &'static str {
     "
 }
 
+#[post("/", data = "<paste>")]
+async fn upload(paste: Data<'_>) -> Result<String, Debug<std::io::Error>> {
+    let paste_id = PasteId::new(ID_SIZE);
+    let filepath = format!("upload/{id}", id = paste_id);
+    let url = format!("{host}/{id}\n", host = HOST, id = paste_id);
+    
+    paste.open(128.kibibytes()).into_file(filepath).await?;
+
+    Ok(url)
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+    rocket::build().mount("/", routes![index, upload])
 }
