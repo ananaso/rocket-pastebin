@@ -1,14 +1,14 @@
 #[macro_use]
 extern crate rocket;
 mod paste_id;
+mod paste_form;
 
 use std::fs::File;
-use std::io::prelude::Read;
-
-use paste_id::PasteId;
 use rocket::response::Debug;
 use rocket::data::ToByteUnit;
-use rocket::{Data};
+use rocket::Data;
+
+use paste_id::PasteId;
 
 const ID_SIZE: usize = 3;
 const HOST: &str = "http://localhost:8000";
@@ -41,7 +41,7 @@ async fn upload(paste: Data<'_>) -> Result<String, Debug<std::io::Error>> {
 }
 
 #[get("/<id>")]
-async fn retrieve(id: &str) -> Option<File> {
+async fn retrieve(id: PasteId<'_>) -> Option<File> {
     let filepath = format!("upload/{id}", id = id);
     File::open(&filepath).ok()
 }
