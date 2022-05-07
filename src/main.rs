@@ -4,6 +4,7 @@ mod paste_id;
 mod paste_form;
 
 use std::fs::File;
+use rocket::fs::{FileServer, relative};
 use rocket::response::Debug;
 use rocket::data::ToByteUnit;
 use rocket::Data;
@@ -12,22 +13,6 @@ use paste_id::PasteId;
 
 const ID_SIZE: usize = 3;
 const HOST: &str = "http://localhost:8000";
-
-#[get("/")]
-fn index() -> &'static str {
-    "
-    USAGE
-
-      POST /
-
-          accepts raw data in the body of the request and responds with a URL of
-          a page containing the body's content
-
-      GET /<id>
-
-          retrieves the content for the paste with id `<id>`
-    "
-}
 
 #[post("/", data = "<paste>")]
 async fn upload(paste: Data<'_>) -> Result<String, Debug<std::io::Error>> {
@@ -48,5 +33,5 @@ async fn retrieve(id: PasteId<'_>) -> Option<File> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, upload, retrieve])
+    rocket::build().mount("/", routes![upload, retrieve]).mount("/", FileServer::from(relative!("html")))
 }
