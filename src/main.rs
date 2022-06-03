@@ -18,6 +18,14 @@ const ID_SIZE: usize = 3;
 const HOST: &str = "http://localhost:8000";
 const PASTE_LOCATION: &str = "upload";
 
+#[derive(Responder)]
+enum UploadResponse {
+    #[response(status = 200)]
+    Complete(String),
+    #[response(status = 206)]
+    Partial(String),
+}
+
 #[delete("/<id>")]
 async fn delete(id: PasteId<'_>) -> Result<(), Debug<std::io::Error>> {
     let filepath = format!("{folder}/{id}", folder = PASTE_LOCATION, id = id);
@@ -42,14 +50,23 @@ async fn paste(paste: Form<Strict<PasteForm<'_>>>) -> Result<String, Debug<std::
 }
 
 #[post("/", data = "<paste>", rank = 2)]
-async fn upload(paste: Data<'_>) -> Result<String, Debug<std::io::Error>> {
+async fn upload(paste: Data<'_>) -> Result<UploadResponse, Debug<std::io::Error>> {
     let id = PasteId::new(ID_SIZE);
     let filepath = format!("{folder}/{id}", folder = PASTE_LOCATION, id = id);
     let url = format!("{host}/{id}\n", host = HOST, id = id);
 
-    paste.open(128.kibibytes()).into_file(filepath).await?;
+    let upload = paste
+        .open((1 as u8).kibibytes())
+        .into_file(filepath)
+        .await?;
+    let response;
+    if upload.is_complete() {
+        response = UploadResponse::Complete(url);
+    } else {
+        response = UploadResponse::Partial(url);
+    }
 
-    Ok(url)
+    Ok(response)
 }
 
 #[get("/<id>")]
